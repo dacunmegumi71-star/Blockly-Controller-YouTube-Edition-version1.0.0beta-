@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Blockly Controller (YouTube Edition)</title>
+  
+  <!-- Blockly Core & JS Generator CDN -->
+  <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/msg/en.js"></script>
+
+  <!-- External YouTube Controller -->
+  <script src="youtube-player.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f6f8fa;
+    }
+    #controls {
+      margin-bottom: 15px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    .btn-start {
+      padding: 10px 24px;
+      font-size: 16px;
+      font-weight: bold;
+      color: white;
+      background-color: #2ea44f;
+      border: 1px solid rgba(27, 31, 36, 0.15);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-start:hover {
+      background-color: #2c974b;
+    }
+    .perf-badge {
+      background: #e1e4e8;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: monospace;
+    }
+    #container {
+      display: flex;
+      gap: 20px;
+    }
+    #blocklyDiv {
+      height: 480px;
+      width: 50%;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      background: white;
+    }
+    #playerArea {
+      width: 50%;
+    }
+    #logBox {
+      margin-top: 15px;
+      padding: 12px;
+      background: #24292f;
+      color: #f0f6fc;
+      border-radius: 6px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Blockly Controller (YouTube)</h1>
+
+  <div id="controls">
+    <button class="btn-start" onclick="runCode()">🚩 Start (Run)</button>
+    <div class="perf-badge" id="perfDisplay">Memory: -- MB | Buffer: --%</div>
+  </div>
+
+  <div id="container">
+    <!-- Left: Blockly Workspace -->
+    <div id="blocklyDiv"></div>
+
+    <!-- Right: YouTube Player -->
+    <div id="playerArea">
+      <div id="player"></div>
+    </div>
+  </div>
+
+  <h3>Execution Log (JavaScript)</h3>
+  <div id="logBox">Generated JavaScript code will be displayed here...</div>
+
+  <!-- Blockly Toolbox Definition -->
+  <xml id="toolbox" style="display: none">
+    <category name="Events & Control" colour="120">
+      <block type="event_when_start"></block>
+      <block type="wait_seconds">
+        <field name="SECONDS">2</field>
+      </block>
+    </category>
+
+    <category name="YouTube Operations" colour="0">
+      <block type="play_youtube_url">
+        <field name="URL">https://www.youtube.com/watch?v=2I25AFSBm2g</field>
+      </block>
+      <block type="pause_youtube"></block>
+      <block type="set_youtube_volume">
+        <field name="VOLUME">50</field>
+      </block>
+    </category>
+  </xml>
+
+  <script>
+    // ----------------------------------------------------
+    // 1. Custom Block Definitions (English)
+    // ----------------------------------------------------
+    Blockly.Blocks['event_when_start'] = {
+      init: function() {
+        this.appendDummyInput().appendField("🚩 When Start Clicked");
+        this.setNextStatement(true, null);
+        this.setColour(120);
+      }
+    };
+
+    Blockly.Blocks['wait_seconds'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("Wait")
+            .appendField(new Blockly.FieldNumber(2, 0, 60), "SECONDS")
+            .appendField("seconds");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(65);
+      }
+    };
+
+    Blockly.Blocks['play_youtube_url'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("Play YouTube URL:")
+            .appendField(new Blockly.FieldTextInput("https://www.youtube.com/watch?v=2I25AFSBm2g"), "URL");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(0);
+      }
+    };
+
+    Blockly.Blocks['pause_youtube'] = {
+      init: function() {
+        this.appendDummyInput().appendField("Pause YouTube Video");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(0);
+      }
+    };
+
+    Blockly.Blocks['set_youtube_volume'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("Set Volume to")
+            .appendField(new Blockly.FieldNumber(50, 0, 100), "VOLUME")
+            .appendField("%");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(0);
+      }
+    };
+
+    // ----------------------------------------------------
+    // 2. JavaScript Code Generator Definitions
+    // ----------------------------------------------------
+    var generator = javascript.javascriptGenerator || Blockly.JavaScript;
+
+    generator.forBlock['event_when_start'] = function(block, generator) {
+      return '// Start execution\n';
+    };
+
+    generator.forBlock['wait_seconds'] = function(block, generator) {
+      var seconds = block.getFieldValue('SECONDS');
+      return 'await new Promise(resolve => setTimeout(resolve, ' + (seconds * 1000) + '));\n';
+    };
+
+    generator.forBlock['play_youtube_url'] = function(block, generator) {
+      var url = block.getFieldValue('URL');
+      return 'window.youtubeController.loadAndPlay(' + JSON.stringify(url) + ');\n';
+    };
+
+    generator.forBlock['pause_youtube'] = function(block, generator) {
+      return 'window.youtubeController.pause();\n';
+    };
+
+    generator.forBlock['set_youtube_volume'] = function(block, generator) {
+      var volume = block.getFieldValue('VOLUME');
+      return 'window.youtubeController.setVolume(' + volume + ');\n';
+    };
+
+    // ----------------------------------------------------
+    // 3. Workspace Initialization & Default Block Placement
+    // ----------------------------------------------------
+    var workspace = Blockly.inject('blocklyDiv', {
+      toolbox: document.getElementById('toolbox')
+    });
+
+    var startBlock = workspace.newBlock('event_when_start');
+    startBlock.initSvg();
+    startBlock.render();
+
+    var ytBlock = workspace.newBlock('play_youtube_url');
+    ytBlock.initSvg();
+    ytBlock.render();
+
+    var volBlock = workspace.newBlock('set_youtube_volume');
+    volBlock.initSvg();
+    volBlock.render();
+
+    startBlock.nextConnection.connect(ytBlock.previousConnection);
+    ytBlock.nextConnection.connect(volBlock.previousConnection);
+
+    // ----------------------------------------------------
+    // 4. Code Execution Runner
+    // ----------------------------------------------------
+    async function runCode() {
+      var code = generator.workspaceToCode(workspace);
+      document.getElementById('logBox').innerText = code || "(No code generated)";
+
+      if (!code.trim()) {
+        alert("No connected blocks found in workspace.");
+        return;
+      }
+
+      try {
+        var asyncFunction = new Function('async function run() {\n' + code + '\n}\nreturn run();');
+        await asyncFunction();
+      } catch (e) {
+        alert("Execution Error: " + e);
+      }
+    }
+
+    // Update Performance Badge every second
+    setInterval(function() {
+      if (window.youtubeController) {
+        var info = window.youtubeController.getPerformanceInfo();
+        document.getElementById("perfDisplay").innerText = "Memory: " + info.memory + " | Buffer: " + info.buffer + "%";
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
